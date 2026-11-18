@@ -1,0 +1,6 @@
+# Copy to terraform.tfvars for local runs (the pipeline uses GitHub repository variables instead)
+sender_email = "you@example.com"
+tutor_email  = "tutor@example.com"
+alert_email  = ""
+# domain_name    = "exams.example.com"
+# hosted_zone_id = "Z0123456789"

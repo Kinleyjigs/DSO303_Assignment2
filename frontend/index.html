@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Online Exam Platform</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; color: #1b1f24; }
+    h1 { font-size: 1.5rem; } h2 { font-size: 1.15rem; margin-top: 2rem; }
+    section { border: 1px solid #d0d7de; border-radius: 8px; padding: 1rem 1.25rem; margin: 1rem 0; }
+    input, textarea, button { font: inherit; } input[type=email], input[type=password], textarea { width: 100%; padding: .4rem; box-sizing: border-box; }
+    button { padding: .45rem .9rem; border-radius: 6px; border: 1px solid #1f6feb; background: #1f6feb; color: #fff; cursor: pointer; }
+    button.secondary { background: #fff; color: #1f6feb; }
+    .muted { color: #57606a; font-size: .9rem; } .ok { color: #1a7f37; } .err { color: #cf222e; }
+    .question { margin: 1rem 0; } .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <h1>Online Exam Platform</h1>
+
+  <section id="login">
+    <h2>Sign in</h2>
+    <label>Email <input id="email" type="email" autocomplete="username"></label>
+    <label>Password <input id="password" type="password" autocomplete="current-password"></label>
+    <p><button id="loginBtn">Sign in</button> <span id="loginMsg" class="muted"></span></p>
+  </section>
+
+  <div id="app" class="hidden">
+    <p class="muted">Signed in as <b id="who"></b> (<span id="roles"></span>) <button class="secondary" id="logoutBtn">Sign out</button></p>
+
+    <section>
+      <h2>Exams</h2>
+      <div id="exams"></div>
+    </section>
+
+    <section id="examView" class="hidden">
+      <h2 id="examTitle"></h2>
+      <p class="muted">Time left: <b id="timer"></b> · Autosave: <span id="saveStatus">not saved yet</span></p>
+      <div id="questions"></div>
+      <button id="submitBtn">Submit exam</button> <span id="submitMsg"></span>
+    </section>
+
+    <section>
+      <h2>Assignment upload (PDF or ZIP, max 50 MB)</h2>
+      <div id="assignments"></div>
+      <input type="file" id="file" accept=".pdf,.zip">
+      <button id="uploadBtn">Upload</button> <span id="uploadMsg"></span>
+    </section>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
