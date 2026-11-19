@@ -33,6 +33,11 @@ variable "github_repo" {
 
 data "aws_caller_identity" "me" {}
 
+locals {
+  gh_owner = split("/", var.github_repo)[0]
+  gh_repo  = split("/", var.github_repo)[1]
+}
+
 # ---------- Terraform remote state ----------
 resource "aws_s3_bucket" "state" {
   bucket        = "${var.prefix}-tfstate-${data.aws_caller_identity.me.account_id}"
@@ -82,11 +87,16 @@ data "aws_iam_policy_document" "github_trust" {
       variable = "token.actions.githubusercontent.com:aud"
       values   = ["sts.amazonaws.com"]
     }
-    # Only the main branch of this one repository can deploy
+    # Only the main branch of this one repository can deploy.
+    # GitHub sends either the classic subject (repo:owner/repo:...) or the newer
+    # immutable one with IDs (repo:owner@123/repo@456:...), so accept both forms.
     condition {
-      test     = "StringEquals"
+      test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repo}:ref:refs/heads/main"]
+      values = [
+        "repo:${var.github_repo}:ref:refs/heads/main",
+        "repo:${local.gh_owner}@*/${local.gh_repo}@*:ref:refs/heads/main",
+      ]
     }
   }
 }
