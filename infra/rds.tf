@@ -39,7 +39,7 @@ resource "aws_db_instance" "main" {
   storage_encrypted = true
   kms_key_id        = aws_kms_key.main.arn
 
-  backup_retention_period = 7 # point-in-time restore window (5-year copies: AWS Backup)
+  backup_retention_period = 1 # free-plan maximum; point-in-time restore for the last 24 h (5-year copies: AWS Backup)
   copy_tags_to_snapshot   = true
   deletion_protection     = var.db_deletion_protection
   skip_final_snapshot     = true
