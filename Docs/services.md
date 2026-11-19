@@ -1,6 +1,6 @@
 # Task 2 – Service Documentation
 
-Every service in the architecture ([`Architecture_Design/architecture.png`](../Architecture_Design/architecture.png)) is listed below. Each one is justified against a real alternative and given the configuration used in this design.
+Every service in the architecture (see the Cloud Architecture Lab canvas, [`Evidence/01-full-canvas.png`](../Evidence/01-full-canvas.png)) is listed below. Each one is justified against a real alternative and given the configuration used in this design.
 
 ## Edge, frontend and authentication
 

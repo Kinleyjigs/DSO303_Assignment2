@@ -11,11 +11,9 @@ Everything runs in **two Availability Zones**, so the platform keeps working if 
 
 ### Architecture diagram
 
-![Architecture diagram](architecture.png)
+![Figure 1](../Evidence/01-full-canvas.png)
 
-### Built in the Cloud Architecture Lab
-
-![Full Lab canvas](../Evidence/01-full-canvas.png)
+*Figure 1: Architecture built in the Cloud Architecture Lab*
 
 ## 2. Components (what each layer is for)
 
@@ -43,8 +41,6 @@ Everything runs in **two Availability Zones**, so the platform keeps working if 
 
 ## 3. Walkthrough 1: A student opens an exam and answers autosave
 
-![Walkthrough 1 diagram](walkthrough-1-exam-autosave.png)
-
 1. **Sign in.** The student signs in with **Cognito** and gets a token with the role *student*. Every API call carries this token.
 2. **Load the app.** The browser opens `exams.uni.edu`. **Route 53** points it to **CloudFront**, and **WAF** checks the request. CloudFront serves the React app from the private S3 website bucket over HTTPS.
 3. **Open the exam.** The browser sends `POST /api/exams/{id}/start`, and CloudFront forwards `/api/*` requests to the **load balancer**.
@@ -59,13 +55,15 @@ Everything runs in **two Availability Zones**, so the platform keeps working if 
 
 **Simulation in the Cloud Architecture Lab:** the request passes Route 53 → CloudFront → Load balancer → API (ECS) → RDS and completes with HTTP 200.
 
-![Walkthrough 1 – Lab canvas](../Evidence/03-w1-canvas.png)
+![Figure 2](../Evidence/03-w1-canvas.png)
 
-![Walkthrough 1 – decision trace (SUCCESS)](../Evidence/02-w1-trace.png)
+*Figure 2: Walkthrough 1 request path on the Lab canvas*
+
+![Figure 3](../Evidence/02-w1-trace.png)
+
+*Figure 3: Walkthrough 1 Lab decision trace (SUCCESS)*
 
 ## 4. Walkthrough 2: A student uploads a 40 MB assignment and the tutor is notified
-
-![Walkthrough 2 diagram](walkthrough-2-upload-notify.png)
 
 1. **Ask to upload.** The student asks the **API** to upload a 40 MB PDF: `POST /api/assignments/{id}/upload-url`.
 2. **API checks.** The API checks the role, the deadline, the file type (PDF or ZIP) and the size (50 MB or less). It returns a **presigned upload link** that is valid for 5 minutes and only accepts that file type, up to 50 MB.
@@ -77,9 +75,13 @@ Everything runs in **two Availability Zones**, so the platform keeps working if 
 
 **Simulation in the Cloud Architecture Lab:** the upload passes Student → S3 → Lambda notifier and completes successfully (5 steps). The Lab does not model email delivery to a person, so Lambda → SES → Tutor is shown as a dependency on the canvas, not as an animated step.
 
-![Walkthrough 2 – Lab canvas](../Evidence/05-w2-canvas.png)
+![Figure 4](../Evidence/05-w2-canvas.png)
 
-![Walkthrough 2 – decision trace (SUCCESS)](../Evidence/04-w2-trace.png)
+*Figure 4: Walkthrough 2 upload path on the Lab canvas*
+
+![Figure 5](../Evidence/04-w2-trace.png)
+
+*Figure 5: Walkthrough 2 Lab decision trace (SUCCESS)*
 
 ## 5. How the design handles the exam peak and the loss of one AZ
 
