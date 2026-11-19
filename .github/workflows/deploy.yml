@@ -1,0 +1,114 @@
+name: test-and-deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write   # GitHub OIDC -> AWS role (no stored AWS keys)
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+  TF_VERSION: 1.10.5
+  TF_IN_AUTOMATION: "true"
+  NAME: yonten   # must match var.name in infra/variables.tf
+  TF_VAR_sender_email: ${{ vars.SENDER_EMAIL }}
+  TF_VAR_tutor_email: ${{ vars.TUTOR_EMAIL }}
+  TF_VAR_alert_email: ${{ vars.ALERT_EMAIL }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Unit tests (API rules + Lambdas)
+        run: |
+          pip install -r app/requirements.txt -r app/requirements-dev.txt -r lambdas/marker/requirements.txt
+          pytest -q
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform format + validate
+        run: |
+          terraform -chdir=infra fmt -check -recursive || echo "::warning::Run 'terraform fmt -recursive' to tidy formatting"
+          terraform -chdir=infra init -backend=false -input=false
+          terraform -chdir=infra validate
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Build Lambda packages
+        run: ./scripts/build_lambdas.sh
+
+      - name: Terraform init
+        run: terraform -chdir=infra init -input=false -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
+
+      - name: Create the image registry first
+        run: terraform -chdir=infra apply -input=false -auto-approve -target=aws_ecr_repository.api
+
+      - uses: aws-actions/amazon-ecr-login@v2
+        id: ecr
+
+      - name: Build and push the API image (tag = commit SHA)
+        env:
+          REPO: ${{ steps.ecr.outputs.registry }}/yonten-api
+        run: |
+          if aws ecr describe-images --repository-name ${NAME}-api --image-ids imageTag=${GITHUB_SHA} >/dev/null 2>&1; then
+            echo "Image ${GITHUB_SHA} already exists"
+          else
+            docker build -t "$REPO:${GITHUB_SHA}" app
+            docker push "$REPO:${GITHUB_SHA}"
+          fi
+
+      - name: Terraform apply (whole platform, new image)
+        run: terraform -chdir=infra apply -input=false -auto-approve -var "image_tag=${GITHUB_SHA}"
+
+      - name: Publish the frontend
+        run: |
+          cd infra
+          BUCKET=$(terraform output -raw web_bucket)
+          DIST=$(terraform output -raw cloudfront_distribution_id)
+          CLIENT=$(terraform output -raw cognito_client_id)
+          cd ..
+          echo "window.APP_CONFIG = { region: \"${AWS_REGION}\", cognitoClientId: \"${CLIENT}\" };" > frontend/config.js
+          aws s3 sync frontend "s3://${BUCKET}" --delete
+          aws cloudfront create-invalidation --distribution-id "$DIST" --paths "/*" >/dev/null
+
+      - name: Wait for the API to be healthy
+        run: |
+          cd infra
+          aws ecs wait services-stable --cluster "$(terraform output -raw ecs_cluster)" --services "$(terraform output -raw ecs_service)"
+          echo "Site: $(terraform output -raw site_url)" >> "$GITHUB_STEP_SUMMARY"

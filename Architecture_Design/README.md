@@ -11,6 +11,10 @@ Everything runs in **two Availability Zones**, so the platform keeps working if 
 
 ### Architecture diagram
 
+![Architecture diagram](architecture.png)
+
+### Built in the Cloud Architecture Lab
+
 ![Full Lab canvas](../Evidence/01-full-canvas.png)
 
 ## 2. Components (what each layer is for)
@@ -39,6 +43,7 @@ Everything runs in **two Availability Zones**, so the platform keeps working if 
 
 ## 3. Walkthrough 1: A student opens an exam and answers autosave
 
+![Walkthrough 1 diagram](walkthrough-1-exam-autosave.png)
 
 1. **Sign in.** The student signs in with **Cognito** and gets a token with the role *student*. Every API call carries this token.
 2. **Load the app.** The browser opens `exams.uni.edu`. **Route 53** points it to **CloudFront**, and **WAF** checks the request. CloudFront serves the React app from the private S3 website bucket over HTTPS.

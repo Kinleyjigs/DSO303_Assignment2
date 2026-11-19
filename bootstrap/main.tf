@@ -20,6 +20,12 @@ variable "region" {
   default = "us-east-1"
 }
 
+variable "prefix" {
+  description = "Unique prefix so this deployment cannot clash with others in a shared account"
+  type        = string
+  default     = "yonten"
+}
+
 variable "github_repo" {
   description = "GitHub repository allowed to deploy, as owner/repo"
   type        = string
@@ -29,7 +35,7 @@ data "aws_caller_identity" "me" {}
 
 # ---------- Terraform remote state ----------
 resource "aws_s3_bucket" "state" {
-  bucket        = "exam-platform-tfstate-${data.aws_caller_identity.me.account_id}"
+  bucket        = "${var.prefix}-tfstate-${data.aws_caller_identity.me.account_id}"
   force_destroy = true
 }
 
@@ -58,10 +64,10 @@ resource "aws_s3_bucket_public_access_block" "state" {
 }
 
 # ---------- GitHub Actions OIDC (no long-lived AWS keys in GitHub) ----------
-resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://token.actions.githubusercontent.com"
-  client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
+# An AWS account can have only one GitHub OIDC provider. This account already has one,
+# so we use it (read-only) instead of creating it. Terraform will never change or delete it.
+data "aws_iam_openid_connect_provider" "github" {
+  url = "https://token.actions.githubusercontent.com"
 }
 
 data "aws_iam_policy_document" "github_trust" {
@@ -69,7 +75,7 @@ data "aws_iam_policy_document" "github_trust" {
     actions = ["sts:AssumeRoleWithWebIdentity"]
     principals {
       type        = "Federated"
-      identifiers = [aws_iam_openid_connect_provider.github.arn]
+      identifiers = [data.aws_iam_openid_connect_provider.github.arn]
     }
     condition {
       test     = "StringEquals"
@@ -86,7 +92,7 @@ data "aws_iam_policy_document" "github_trust" {
 }
 
 resource "aws_iam_role" "github_deploy" {
-  name               = "exam-platform-github-deploy"
+  name               = "${var.prefix}-github-deploy"
   assume_role_policy = data.aws_iam_policy_document.github_trust.json
 }
 

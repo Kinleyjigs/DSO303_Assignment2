@@ -18,7 +18,7 @@ terraform {
 
   # bucket is passed at init: terraform init -backend-config="bucket=<state bucket from bootstrap>"
   backend "s3" {
-    key          = "exam-platform/terraform.tfstate"
+    key          = "yonten/terraform.tfstate"
     region       = "us-east-1"
     encrypt      = true
     use_lockfile = true

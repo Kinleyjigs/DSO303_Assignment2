@@ -5,9 +5,9 @@ variable "region" {
 }
 
 variable "name" {
-  description = "Prefix for resource names"
+  description = "Prefix for every resource name (unique, so it cannot clash with other deployments in the account)"
   type        = string
-  default     = "exam"
+  default     = "yonten"
 }
 
 variable "image_tag" {
