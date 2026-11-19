@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 import boto3
+from botocore.config import Config
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
@@ -193,7 +194,10 @@ def upload_url(assignment_id: int, body: UploadRequest, user: User = Depends(cur
             "INSERT INTO submissions (assignment_id, student_id, s3_key, size_bytes) VALUES (%s, %s, %s, %s)",
             (assignment_id, user.sub, key, body.size_bytes),
         )
-    post = boto3.client("s3").generate_presigned_post(
+    # KMS-encrypted buckets only accept Signature Version 4, and a regional endpoint keeps the signature valid
+    s3 = boto3.client("s3", region_name=os.environ["AWS_REGION"], config=Config(signature_version="s3v4"),
+                      endpoint_url=f"https://s3.{os.environ['AWS_REGION']}.amazonaws.com")
+    post = s3.generate_presigned_post(
         Bucket=os.environ["SUBMISSIONS_BUCKET"],
         Key=key,
         Fields={"Content-Type": body.content_type},
